@@ -223,6 +223,11 @@
               <CaseTasks :case-id="Number(route.params.id)" />
             </div>
 
+            <!-- Wellbeing Tab -->
+            <div v-else-if="activeTab === 'wellbeing'" class="pa-4">
+              <CaseWellbeing :case-id="Number(route.params.id)" />
+            </div>
+
             <!-- Notes Tab -->
             <div v-else-if="activeTab === 'notes'" class="pa-6">
               <v-card variant="outlined">
@@ -403,6 +408,7 @@ import MetadataModal from '../components/MetadataModal.vue'
 import TextContentModal from '../components/TextContentModal.vue'
 import ImageContentModal from '../components/ImageContentModal.vue'
 import CaseTasks from './cases/CaseTasks.vue'
+import CaseWellbeing from './cases/CaseWellbeing.vue'
 import { caseService } from '../services/case'
 import { clientService } from '../services/client'
 import { entityService } from '../services/entity'
@@ -470,9 +476,10 @@ const availableTabs = computed(() => {
     { name: 'tasks', label: 'Tasks' },
   ]
 
-  // Add Hunts tab for non-analyst users
+  // Add Hunts and Wellbeing tabs for non-analyst users
   if (userRole.value !== 'Analyst') {
     tabs.push({ name: 'hunts', label: 'Hunts' })
+    tabs.push({ name: 'wellbeing', label: 'Wellbeing' })
   }
 
   tabs.push({ name: 'notes', label: 'Notes' })

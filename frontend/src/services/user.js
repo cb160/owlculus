@@ -6,6 +6,12 @@ export const userService = {
     return response.data
   },
 
+  async getCaseUsers(/* caseId */) {
+    // For now, return all users - in the future this could be case-specific
+    const response = await api.get('/api/users')
+    return response.data
+  },
+
   async createUser(userData) {
     const response = await api.post('/api/users', userData)
     return response.data
