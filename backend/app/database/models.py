@@ -13,7 +13,7 @@ from pydantic import EmailStr
 from sqlalchemy import JSON, Column
 from sqlmodel import Field, Relationship, SQLModel
 
-from ..core.enums import TaskPriority, TaskStatus
+from ..core.enums import TaskPriority, TaskStatus, EventType, EventStatus
 from ..core.utils import get_utc_now
 
 
@@ -63,6 +63,19 @@ class Client(SQLModel, table=True):
     cases: List["Case"] = Relationship(back_populates="client")
 
 
+class EventEvidenceLink(SQLModel, table=True):
+    event_id: Optional[int] = Field(
+        default=None, foreign_key="event.id", primary_key=True
+    )
+    evidence_id: Optional[int] = Field(
+        default=None, foreign_key="evidence.id", primary_key=True
+    )
+    created_at: datetime = Field(default_factory=get_utc_now)
+    created_by_id: int = Field(foreign_key="user.id")
+
+    creator: "User" = Relationship()
+
+
 class Evidence(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     case_id: int = Field(foreign_key="case.id")
@@ -85,6 +98,10 @@ class Evidence(SQLModel, table=True):
         sa_relationship_kwargs={"remote_side": "Evidence.id"},
     )
     subfolders: List["Evidence"] = Relationship(back_populates="parent_folder")
+    linked_events: List["Event"] = Relationship(
+        link_model=EventEvidenceLink,
+        back_populates="linked_evidence",
+    )
 
 
 class Entity(SQLModel, table=True):
@@ -127,6 +144,7 @@ class Case(SQLModel, table=True):
     entities: List["Entity"] = Relationship(back_populates="case")
     hunt_executions: List["HuntExecution"] = Relationship(back_populates="case")
     tasks: List["Task"] = Relationship(back_populates="case")
+    events: List["Event"] = Relationship()
 
 
 class Hunt(SQLModel, table=True):
@@ -199,6 +217,7 @@ class Task(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     case_id: int = Field(foreign_key="case.id")
     template_id: Optional[int] = Field(default=None, foreign_key="tasktemplate.id")
+    source_event_id: Optional[int] = Field(default=None, foreign_key="event.id")
     title: str
     description: str
     priority: str = Field(default=TaskPriority.MEDIUM.value)
@@ -214,6 +233,9 @@ class Task(SQLModel, table=True):
 
     case: Case = Relationship(back_populates="tasks")
     template: Optional[TaskTemplate] = Relationship(back_populates="tasks")
+    source_event: Optional["Event"] = Relationship(
+        sa_relationship_kwargs={"foreign_keys": "[Task.source_event_id]"}
+    )
     assigned_to: Optional[User] = Relationship(
         sa_relationship_kwargs={"foreign_keys": "[Task.assigned_to_id]"}
     )
@@ -223,6 +245,44 @@ class Task(SQLModel, table=True):
     completed_by: Optional[User] = Relationship(
         sa_relationship_kwargs={"foreign_keys": "[Task.completed_by_id]"}
     )
+
+
+class Event(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    case_id: int = Field(foreign_key="case.id")
+    title: str
+    notes: Optional[str] = Field(default=None)
+    event_type: str = Field(default=EventType.CALL.value, index=True)
+    status: str = Field(default=EventStatus.DRAFT.value)
+    event_date: datetime = Field(default_factory=get_utc_now)
+    created_at: datetime = Field(default_factory=get_utc_now)
+    updated_at: datetime = Field(default_factory=get_utc_now)
+    created_by_id: int = Field(foreign_key="user.id")
+
+    case: Case = Relationship(back_populates="events")
+    creator: User = Relationship(
+        sa_relationship_kwargs={"foreign_keys": "[Event.created_by_id]"}
+    )
+    audit_logs: List["EventAuditLog"] = Relationship(back_populates="event")
+    linked_evidence: List["Evidence"] = Relationship(
+        link_model=EventEvidenceLink,
+        back_populates="linked_events",
+    )
+    created_tasks: List["Task"] = Relationship(
+        back_populates="source_event",
+        sa_relationship_kwargs={"foreign_keys": "[Task.source_event_id]"}
+    )
+
+
+class EventAuditLog(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    event_id: int = Field(foreign_key="event.id")
+    action: str  # created, updated, deleted
+    changed_by_id: int = Field(foreign_key="user.id")
+    changed_at: datetime = Field(default_factory=get_utc_now)
+
+    event: Event = Relationship(back_populates="audit_logs")
+    changed_by: User = Relationship()
 
 
 class WellbeingRecord(SQLModel, table=True):
