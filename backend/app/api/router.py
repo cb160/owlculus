@@ -20,6 +20,7 @@ from . import (
     cases,
     clients,
     evidence,
+    events,
     hunts,
     invites,
     plugins,
@@ -43,4 +44,5 @@ api_router.include_router(invites.router, prefix="/invites", tags=["invites"])
 api_router.include_router(strixy.router, prefix="/strixy", tags=["strixy"])
 api_router.include_router(hunts.router, prefix="/hunts", tags=["hunts"])
 api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
+api_router.include_router(events.router, prefix="/events", tags=["events"])
 api_router.include_router(wellbeing.router, prefix="/wellbeing", tags=["wellbeing"])

@@ -13,7 +13,7 @@ from pydantic import EmailStr
 from sqlalchemy import JSON, Column
 from sqlmodel import Field, Relationship, SQLModel
 
-from ..core.enums import TaskPriority, TaskStatus
+from ..core.enums import TaskPriority, TaskStatus, EventType, EventStatus
 from ..core.utils import get_utc_now
 
 
@@ -127,6 +127,7 @@ class Case(SQLModel, table=True):
     entities: List["Entity"] = Relationship(back_populates="case")
     hunt_executions: List["HuntExecution"] = Relationship(back_populates="case")
     tasks: List["Task"] = Relationship(back_populates="case")
+    events: List["Event"] = Relationship()
 
 
 class Hunt(SQLModel, table=True):
@@ -223,6 +224,36 @@ class Task(SQLModel, table=True):
     completed_by: Optional[User] = Relationship(
         sa_relationship_kwargs={"foreign_keys": "[Task.completed_by_id]"}
     )
+
+
+class Event(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    case_id: int = Field(foreign_key="case.id")
+    title: str
+    notes: Optional[str] = Field(default=None)
+    event_type: str = Field(default=EventType.CALL.value, index=True)
+    status: str = Field(default=EventStatus.DRAFT.value)
+    event_date: datetime = Field(default_factory=get_utc_now)
+    created_at: datetime = Field(default_factory=get_utc_now)
+    updated_at: datetime = Field(default_factory=get_utc_now)
+    created_by_id: int = Field(foreign_key="user.id")
+
+    case: Case = Relationship()
+    creator: User = Relationship(
+        sa_relationship_kwargs={"foreign_keys": "[Event.created_by_id]"}
+    )
+    audit_logs: List["EventAuditLog"] = Relationship(back_populates="event")
+
+
+class EventAuditLog(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    event_id: int = Field(foreign_key="event.id")
+    action: str  # created, updated, deleted
+    changed_by_id: int = Field(foreign_key="user.id")
+    changed_at: datetime = Field(default_factory=get_utc_now)
+
+    event: Event = Relationship(back_populates="audit_logs")
+    changed_by: User = Relationship()
 
 
 class WellbeingRecord(SQLModel, table=True):

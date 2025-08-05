@@ -16,3 +16,14 @@ class TaskPriority(str, Enum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
+
+
+class EventType(str, Enum):
+    CALL = "call"
+    COUNSELLING = "counselling"
+    INVESTIGATION = "investigation"
+
+
+class EventStatus(str, Enum):
+    DRAFT = "draft"
+    FINAL = "final"

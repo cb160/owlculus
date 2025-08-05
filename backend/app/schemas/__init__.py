@@ -16,6 +16,13 @@ from .entity_schema import (
     SocialMedia,
 )
 from .evidence_schema import Evidence, EvidenceCreate
+from .event_schema import (
+    EventAuditLogResponse,
+    EventCreate,
+    EventFilter,
+    EventResponse,
+    EventUpdate,
+)
 from .invite_schema import (
     InviteCreate,
     InviteListResponse,
