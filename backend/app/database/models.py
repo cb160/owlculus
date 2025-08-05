@@ -259,7 +259,7 @@ class Event(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=get_utc_now)
     created_by_id: int = Field(foreign_key="user.id")
 
-    case: Case = Relationship()
+    case: Case = Relationship(back_populates="events")
     creator: User = Relationship(
         sa_relationship_kwargs={"foreign_keys": "[Event.created_by_id]"}
     )

@@ -82,7 +82,7 @@ class EventService:
 
         # Set event_date to now if not provided
         if not event_data.get("event_date"):
-            event_data["event_date"] = datetime.utcnow()
+            event_data["event_date"] = datetime.now()
 
         # Create event
         event = models.Event(
@@ -125,7 +125,7 @@ class EventService:
             if hasattr(event, field):
                 setattr(event, field, value)
 
-        event.updated_at = datetime.utcnow()
+        event.updated_at = datetime.now()
 
         self.db.add(event)
         self.db.commit()
