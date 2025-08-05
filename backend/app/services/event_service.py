@@ -187,6 +187,144 @@ class EventService:
         audit_logs = self.db.exec(query).all()
         return audit_logs
 
+    async def link_evidence(
+        self,
+        event_id: int,
+        evidence_id: int,
+        *,
+        current_user: models.User,
+    ) -> bool:
+        """Link evidence to an event"""
+        # Verify event exists
+        event = await self.get_event(event_id, current_user=current_user)
+        
+        # Verify evidence exists and belongs to the same case
+        evidence = self.db.get(models.Evidence, evidence_id)
+        if not evidence:
+            raise ResourceNotFoundException(f"Evidence with ID {evidence_id} not found")
+        
+        if evidence.case_id != event.case_id:
+            raise ValidationException("Evidence and event must belong to the same case")
+
+        # Check if link already exists
+        existing_link = self.db.exec(
+            select(models.EventEvidenceLink).where(
+                models.EventEvidenceLink.event_id == event_id,
+                models.EventEvidenceLink.evidence_id == evidence_id,
+            )
+        ).first()
+        
+        if existing_link:
+            return True  # Already linked
+
+        # Create link
+        link = models.EventEvidenceLink(
+            event_id=event_id,
+            evidence_id=evidence_id,
+            created_by_id=current_user.id,
+        )
+
+        self.db.add(link)
+        self.db.commit()
+
+        get_security_logger().info(
+            f"Evidence linked to event",
+            extra={
+                "event_id": event_id,
+                "evidence_id": evidence_id,
+                "user_id": current_user.id,
+            }
+        )
+
+        return True
+
+    async def unlink_evidence(
+        self,
+        event_id: int,
+        evidence_id: int,
+        *,
+        current_user: models.User,
+    ) -> bool:
+        """Unlink evidence from an event"""
+        # Verify event exists
+        await self.get_event(event_id, current_user=current_user)
+
+        # Find and remove link
+        link = self.db.exec(
+            select(models.EventEvidenceLink).where(
+                models.EventEvidenceLink.event_id == event_id,
+                models.EventEvidenceLink.evidence_id == evidence_id,
+            )
+        ).first()
+
+        if link:
+            self.db.delete(link)
+            self.db.commit()
+
+            get_security_logger().info(
+                f"Evidence unlinked from event",
+                extra={
+                    "event_id": event_id,
+                    "evidence_id": evidence_id,
+                    "user_id": current_user.id,
+                }
+            )
+
+        return True
+
+    async def get_linked_evidence(
+        self,
+        event_id: int,
+        *,
+        current_user: models.User,
+    ) -> List[models.Evidence]:
+        """Get evidence linked to an event"""
+        # Verify event exists
+        await self.get_event(event_id, current_user=current_user)
+
+        # Get linked evidence
+        query = (
+            select(models.Evidence)
+            .join(models.EventEvidenceLink)
+            .where(models.EventEvidenceLink.event_id == event_id)
+        )
+
+        evidence = self.db.exec(query).all()
+        return evidence
+
+    async def create_task_from_event(
+        self,
+        event_id: int,
+        task_data: dict,
+        *,
+        current_user: models.User,
+    ) -> models.Task:
+        """Create a task from an event"""
+        event = await self.get_event(event_id, current_user=current_user)
+
+        # Create task with event reference
+        task = models.Task(
+            case_id=event.case_id,
+            source_event_id=event_id,
+            assigned_by_id=current_user.id,
+            **task_data
+        )
+
+        self.db.add(task)
+        self.db.commit()
+        self.db.refresh(task)
+
+        get_security_logger().info(
+            f"Task created from event",
+            extra={
+                "event_id": event_id,
+                "task_id": task.id,
+                "user_id": current_user.id,
+            }
+        )
+
+        return task
+
     async def _create_audit_log(
         self,
         event_id: int,

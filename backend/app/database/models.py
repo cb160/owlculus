@@ -63,6 +63,19 @@ class Client(SQLModel, table=True):
     cases: List["Case"] = Relationship(back_populates="client")
 
 
+class EventEvidenceLink(SQLModel, table=True):
+    event_id: Optional[int] = Field(
+        default=None, foreign_key="event.id", primary_key=True
+    )
+    evidence_id: Optional[int] = Field(
+        default=None, foreign_key="evidence.id", primary_key=True
+    )
+    created_at: datetime = Field(default_factory=get_utc_now)
+    created_by_id: int = Field(foreign_key="user.id")
+
+    creator: "User" = Relationship()
+
+
 class Evidence(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     case_id: int = Field(foreign_key="case.id")
@@ -85,6 +98,10 @@ class Evidence(SQLModel, table=True):
         sa_relationship_kwargs={"remote_side": "Evidence.id"},
     )
     subfolders: List["Evidence"] = Relationship(back_populates="parent_folder")
+    linked_events: List["Event"] = Relationship(
+        link_model=EventEvidenceLink,
+        back_populates="linked_evidence",
+    )
 
 
 class Entity(SQLModel, table=True):
@@ -200,6 +217,7 @@ class Task(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     case_id: int = Field(foreign_key="case.id")
     template_id: Optional[int] = Field(default=None, foreign_key="tasktemplate.id")
+    source_event_id: Optional[int] = Field(default=None, foreign_key="event.id")
     title: str
     description: str
     priority: str = Field(default=TaskPriority.MEDIUM.value)
@@ -215,6 +233,9 @@ class Task(SQLModel, table=True):
 
     case: Case = Relationship(back_populates="tasks")
     template: Optional[TaskTemplate] = Relationship(back_populates="tasks")
+    source_event: Optional["Event"] = Relationship(
+        sa_relationship_kwargs={"foreign_keys": "[Task.source_event_id]"}
+    )
     assigned_to: Optional[User] = Relationship(
         sa_relationship_kwargs={"foreign_keys": "[Task.assigned_to_id]"}
     )
@@ -243,6 +264,14 @@ class Event(SQLModel, table=True):
         sa_relationship_kwargs={"foreign_keys": "[Event.created_by_id]"}
     )
     audit_logs: List["EventAuditLog"] = Relationship(back_populates="event")
+    linked_evidence: List["Evidence"] = Relationship(
+        link_model=EventEvidenceLink,
+        back_populates="linked_events",
+    )
+    created_tasks: List["Task"] = Relationship(
+        back_populates="source_event",
+        sa_relationship_kwargs={"foreign_keys": "[Task.source_event_id]"}
+    )
 
 
 class EventAuditLog(SQLModel, table=True):

@@ -23,6 +23,7 @@ from app.core.exceptions import (
     AuthorizationException,
     BaseException,
     ResourceNotFoundException,
+    ValidationException,
 )
 from app.database.connection import get_db
 from app.database.models import User
@@ -216,6 +217,125 @@ async def get_event_audit_logs(
     try:
         audit_logs = await service.get_audit_logs(event_id, current_user=current_user)
         return audit_logs
+    except BaseException as e:
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.post("/{event_id}/evidence/{evidence_id}")
+async def link_evidence_to_event(
+    event_id: int,
+    evidence_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    service = EventService(db)
+    try:
+        event = await service.get_event(event_id, current_user=current_user)
+        check_case_access(db, event.case_id, current_user)
+    except AuthorizationException:
+        raise HTTPException(
+            status_code=http_status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this case",
+        )
+    except ResourceNotFoundException as e:
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail=str(e))
+
+    try:
+        success = await service.link_evidence(
+            event_id, evidence_id, current_user=current_user
+        )
+        if success:
+            return {"message": "Evidence linked to event successfully"}
+    except BaseException as e:
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.delete("/{event_id}/evidence/{evidence_id}")
+async def unlink_evidence_from_event(
+    event_id: int,
+    evidence_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    service = EventService(db)
+    try:
+        event = await service.get_event(event_id, current_user=current_user)
+        check_case_access(db, event.case_id, current_user)
+    except AuthorizationException:
+        raise HTTPException(
+            status_code=http_status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this case",
+        )
+    except ResourceNotFoundException as e:
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail=str(e))
+
+    try:
+        success = await service.unlink_evidence(
+            event_id, evidence_id, current_user=current_user
+        )
+        if success:
+            return {"message": "Evidence unlinked from event successfully"}
+    except BaseException as e:
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.get("/{event_id}/evidence", response_model=List[schemas.Evidence])
+async def get_event_linked_evidence(
+    event_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    service = EventService(db)
+    try:
+        event = await service.get_event(event_id, current_user=current_user)
+        check_case_access(db, event.case_id, current_user)
+    except AuthorizationException:
+        raise HTTPException(
+            status_code=http_status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this case",
+        )
+    except ResourceNotFoundException as e:
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail=str(e))
+
+    try:
+        evidence = await service.get_linked_evidence(event_id, current_user=current_user)
+        return evidence
+    except BaseException as e:
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.post("/{event_id}/create-task", response_model=schemas.TaskResponse)
+async def create_task_from_event(
+    event_id: int,
+    task_data: schemas.TaskCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    service = EventService(db)
+    try:
+        event = await service.get_event(event_id, current_user=current_user)
+        check_case_access(db, event.case_id, current_user)
+    except AuthorizationException:
+        raise HTTPException(
+            status_code=http_status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this case",
+        )
+    except ResourceNotFoundException as e:
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail=str(e))
+
+    try:
+        task = await service.create_task_from_event(
+            event_id, task_data.model_dump(), current_user=current_user
+        )
+        return task
     except BaseException as e:
         raise HTTPException(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)

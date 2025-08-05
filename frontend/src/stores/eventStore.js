@@ -140,6 +140,66 @@ export const useEventStore = defineStore('events', () => {
     }
   }
 
+  async function linkEvidence(eventId, evidenceId) {
+    loading.value = true
+    error.value = null
+    
+    try {
+      const response = await api.post(`/api/events/${eventId}/evidence/${evidenceId}`)
+      return response.data
+    } catch (err) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function unlinkEvidence(eventId, evidenceId) {
+    loading.value = true
+    error.value = null
+    
+    try {
+      const response = await api.delete(`/api/events/${eventId}/evidence/${evidenceId}`)
+      return response.data
+    } catch (err) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function getLinkedEvidence(eventId) {
+    loading.value = true
+    error.value = null
+    
+    try {
+      const response = await api.get(`/api/events/${eventId}/evidence`)
+      return response.data
+    } catch (err) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function createTaskFromEvent(eventId, taskData) {
+    loading.value = true
+    error.value = null
+    
+    try {
+      const response = await api.post(`/api/events/${eventId}/create-task`, taskData)
+      return response.data
+    } catch (err) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   function clearError() {
     error.value = null
   }
@@ -165,6 +225,10 @@ export const useEventStore = defineStore('events', () => {
     updateEvent,
     deleteEvent,
     fetchAuditLogs,
+    linkEvidence,
+    unlinkEvidence,
+    getLinkedEvidence,
+    createTaskFromEvent,
     clearError,
     clearEvents,
   }

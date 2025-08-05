@@ -171,10 +171,24 @@ async function showAuditLog(event) {
 }
 
 function createTaskFromEvent(event) {
-  // This would integrate with the task system
-  // For now, just show a placeholder
-  console.log('Create task from event:', event)
-  // TODO: Implement task creation from event
+  // Create a task based on the event
+  const taskData = {
+    case_id: event.case_id,
+    title: `Follow-up for: ${event.title}`,
+    description: `Task created from event: ${event.title}\n\nEvent Notes: ${event.notes || 'No notes'}`,
+    priority: 'medium',
+  }
+  
+  // Use the event store to create the task
+  eventStore.createTaskFromEvent(event.id, taskData)
+    .then(() => {
+      console.log('Task created successfully from event')
+      // TODO: Show success message and refresh task list
+    })
+    .catch((error) => {
+      console.error('Failed to create task from event:', error)
+      // TODO: Show error message
+    })
 }
 
 // Utility functions
