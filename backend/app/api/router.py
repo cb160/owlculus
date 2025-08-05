@@ -27,6 +27,7 @@ from . import (
     system_config,
     tasks,
     users,
+    wellbeing,
 )
 
 api_router = APIRouter()
@@ -42,3 +43,4 @@ api_router.include_router(invites.router, prefix="/invites", tags=["invites"])
 api_router.include_router(strixy.router, prefix="/strixy", tags=["strixy"])
 api_router.include_router(hunts.router, prefix="/hunts", tags=["hunts"])
 api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
+api_router.include_router(wellbeing.router, prefix="/wellbeing", tags=["wellbeing"])

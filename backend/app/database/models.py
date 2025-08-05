@@ -223,3 +223,20 @@ class Task(SQLModel, table=True):
     completed_by: Optional[User] = Relationship(
         sa_relationship_kwargs={"foreign_keys": "[Task.completed_by_id]"}
     )
+
+
+class WellbeingRecord(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    case_id: int = Field(foreign_key="case.id")
+    client_entity_id: int = Field(foreign_key="entity.id")
+    assessment_date: datetime = Field(default_factory=get_utc_now)
+    treatment_plan: Optional[str] = Field(default=None)
+    current_status: str = Field(default="Active")
+    notes: Optional[str] = Field(default=None)
+    created_at: datetime = Field(default_factory=get_utc_now)
+    updated_at: datetime = Field(default_factory=get_utc_now)
+    created_by_id: int = Field(foreign_key="user.id")
+
+    case: Case = Relationship()
+    client_entity: Entity = Relationship()
+    creator: User = Relationship()

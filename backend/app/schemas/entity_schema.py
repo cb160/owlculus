@@ -90,6 +90,7 @@ class PersonData(EntityData):
     social_media: Optional[SocialMedia] = None
     usernames: Optional[list[str]] = None
     associates: Optional[Associates] = None
+    is_client: Optional[bool] = Field(default=False, description="Flag indicating if this person is a client requiring wellbeing support")
     other: Optional[str] = None
     notes: Optional[str] = None
     sources: Optional[Dict[str, str]] = None
