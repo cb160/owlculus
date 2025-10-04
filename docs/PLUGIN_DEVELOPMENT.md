@@ -4,6 +4,9 @@
 
 **The fastest way to create a new plugin is using the plugin generator script:**
 
+> **Container tip**: Wherever you see `docker compose` in this guide, substitute the compose command for your
+> environment (Docker or Podman). You can also set `COMPOSE_CMD`, e.g. `export COMPOSE_CMD="podman compose"`.
+
 ### Interactive Mode (Recommended)
 ```bash
 python scripts/create_plugin.py
@@ -533,7 +536,7 @@ touch backend/app/plugins/mytool_plugin.py
 # 3. Implement plugin class (see structure above)
 
 # 4. Install dependencies in container
-docker compose exec backend pip install your-tool
+${COMPOSE_CMD:-docker compose} exec backend pip install your-tool
 ```
 
 #### 2. Create Frontend Components (Usually Not Needed)
@@ -560,13 +563,13 @@ touch backend/tests/plugins/test_mytool_plugin.py
 ### Final Steps (Both Methods)
 ```bash
 # Install new dependencies
-docker compose exec backend pip install your-new-dependencies
+${COMPOSE_CMD:-docker compose} exec backend pip install your-new-dependencies
 
 # Restart backend to load new plugin
-docker compose restart backend
+${COMPOSE_CMD:-docker compose} restart backend
 
 # Run tests
-docker compose exec backend pytest backend/tests/plugins/test_mytool_plugin.py
+${COMPOSE_CMD:-docker compose} exec backend pytest backend/tests/plugins/test_mytool_plugin.py
 
 # Plugin should appear in the frontend automatically
 # Navigate to Plugins dashboard to test
@@ -787,7 +790,7 @@ Study these existing plugins for reference:
 ### Plugin Not Appearing
 - Check file naming: `*_plugin.py` in `/backend/app/plugins/`
 - Ensure class inherits from `BasePlugin`
-- Restart backend container: `docker compose restart backend`
+- Restart backend container: `${COMPOSE_CMD:-docker compose} restart backend`
 
 ### Frontend Components Not Loading
 - Check naming: `{PluginName}PluginParams.vue` and `{PluginName}PluginResult.vue`
@@ -796,7 +799,7 @@ Study these existing plugins for reference:
 
 ### Dependencies Not Available
 - Add to `requirements.txt`
-- Install in container: `docker compose exec backend pip install package-name`
+- Install in container: `${COMPOSE_CMD:-docker compose} exec backend pip install package-name`
 - For persistent dependencies, rebuild container
 
 ---

@@ -2,6 +2,9 @@
 
 This guide explains how to create custom hunt flows in Owlculus. Hunts are automated workflows that orchestrate multiple OSINT plugins into reusable investigation patterns.
 
+> **Container tip**: Substitute `docker compose` with the compose command for your setup (Docker or Podman). Set
+> `COMPOSE_CMD` to override, e.g. `export COMPOSE_CMD="podman compose"`.
+
 ## Architecture Overview
 
 Hunts in Owlculus are implemented as Python classes that inherit from `BaseHunt`. The system automatically discovers hunt definitions from the `/backend/app/hunts/definitions/` directory and provides a complete UI for executing and monitoring them.
@@ -246,7 +249,7 @@ Plugins used in hunts must:
 1. **Manual Testing**:
    ```bash
    # Restart backend to load new hunt
-   docker compose restart backend
+   ${COMPOSE_CMD:-docker compose} restart backend
    
    # Check hunt appears in API
    curl http://localhost:8000/api/hunts
